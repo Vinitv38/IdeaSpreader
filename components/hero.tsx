@@ -66,7 +66,7 @@ export function Hero() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="#featured">
+            <Link href="/dashboard">
               <Button variant="outline" size="lg" className="px-8 py-3 text-lg font-semibold rounded-full border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200">
                 Explore Ideas
               </Button>
@@ -74,7 +74,7 @@ export function Hero() {
           </div>
 
           {/* Featured idea preview */}
-          <div className="mt-16 max-w-2xl mx-auto">
+          {/* <div className="mt-16 max-w-2xl mx-auto">
             <div className="glass rounded-2xl p-6 shadow-xl">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
@@ -97,7 +97,7 @@ export function Hero() {
                 <span>🌍 15.4K reached</span>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </section>

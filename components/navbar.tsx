@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
-import { Lightbulb, Menu, X, Sun, Moon } from 'lucide-react'
+import { Lightbulb, Menu, X, Sun, Moon, Plus, BarChart3 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 
 export function Navbar() {
@@ -46,8 +46,17 @@ export function Navbar() {
 
             {user ? (
               <div className="flex items-center space-x-4">
+                <Link href="/create">
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create
+                  </Button>
+                </Link>
                 <Link href="/dashboard">
-                  <Button variant="outline">Dashboard</Button>
+                  <Button variant="outline" size="sm">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Button>
                 </Link>
                 <Button onClick={logout} variant="ghost">
                   Logout
@@ -59,7 +68,9 @@ export function Navbar() {
                   <Button variant="outline">Login</Button>
                 </Link>
                 <Link href="/signup">
-                  <Button>Sign Up</Button>
+                  <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                    Sign Up
+                  </Button>
                 </Link>
               </div>
             )}
@@ -101,8 +112,17 @@ export function Navbar() {
               
               {user ? (
                 <div className="space-y-2 pt-2">
+                  <Link href="/create" className="block">
+                    <Button variant="outline" className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Idea
+                    </Button>
+                  </Link>
                   <Link href="/dashboard" className="block">
-                    <Button variant="outline" className="w-full">Dashboard</Button>
+                    <Button variant="outline" className="w-full">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Button>
                   </Link>
                   <Button onClick={logout} variant="ghost" className="w-full">
                     Logout
@@ -114,7 +134,9 @@ export function Navbar() {
                     <Button variant="outline" className="w-full">Login</Button>
                   </Link>
                   <Link href="/signup" className="block">
-                    <Button className="w-full">Sign Up</Button>
+                    <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                      Sign Up
+                    </Button>
                   </Link>
                 </div>
               )}

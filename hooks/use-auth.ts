@@ -1,7 +1,11 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { create } from "node:domain";
+import { createProfile } from "@/app/db-handle/route";
+import { NextResponse } from "next/server";
 
 interface User {
   id: string;
@@ -21,11 +25,12 @@ interface AuthContextType {
 // TODO: Replace with actual auth provider (Auth.js, Clerk, Firebase, etc.)
 const mockUsers: User[] = [
   {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-  }
+    id: "1",
+    name: "John Doe",
+    email: "john@example.com",
+    avatar:
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+  },
 ];
 
 export function useAuth() {
@@ -34,8 +39,7 @@ export function useAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    // TODO: Check for existing session/token
-    const mockCurrentUser = localStorage.getItem('mockUser');
+    const mockCurrentUser = localStorage.getItem("mockUser");
     if (mockCurrentUser) {
       setUser(JSON.parse(mockCurrentUser));
     }
@@ -44,35 +48,77 @@ export function useAuth() {
 
   const login = async (email: string, password: string) => {
     // TODO: Implement actual authentication
-    const user = mockUsers.find(u => u.email === email);
+    const { data: authData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+    if (signInError) {
+      console.error("Sign in error:", signInError);
+      throw new Error(signInError.message || "Failed to sign in");
+    }
+
+    if (!authData.user) {
+      throw new Error("No user data returned from sign in");
+    }
+
+    const user: User = {
+      id: authData.user.id,
+      name: authData.user.user_metadata?.name || "Unknown User",
+      email: authData.user.email || "",
+      avatar:
+        authData.user.user_metadata?.avatar_url ||
+        `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face`,
+    };
     if (user) {
+      createProfile(user);
       setUser(user);
-      localStorage.setItem('mockUser', JSON.stringify(user));
-      router.push('/dashboard');
+      localStorage.setItem("mockUser", JSON.stringify(user));
+      router.push("/dashboard");
     } else {
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    // TODO: Implement actual user registration
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      avatar: `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face`
-    };
-    
-    mockUsers.push(newUser);
-    setUser(newUser);
-    localStorage.setItem('mockUser', JSON.stringify(newUser));
-    router.push('/dashboard');
+    console.log("Signup payload:", { email, password, name });
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          name: name,
+          email: email,
+        },
+        emailRedirectTo: `${window.location.origin}/login`, // Confirmation redirect
+      },
+    });
+
+    if (signUpError) {
+      return NextResponse.json(
+        { success: false, message: signUpError.message },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Send response telling frontend to show popup
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Signup successful! Please check your email to confirm.",
+      },
+      { status: 200 }
+    );
+
+    console.log("Signup successful! Please check your email to confirm.");
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('mockUser');
-    router.push('/');
+    localStorage.removeItem("mockUser");
+    router.push("/");
   };
 
   return {
@@ -80,6 +126,6 @@ export function useAuth() {
     isLoading,
     login,
     signup,
-    logout
+    logout,
   };
 }
