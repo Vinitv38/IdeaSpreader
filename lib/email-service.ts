@@ -35,21 +35,21 @@ export class EmailService {
       // For demo, we'll always return success
       // In production, implement actual email sending:
 
-      // const result = await emailjs.send(
-      //   EmailService.SERVICE_ID,
-      //   EmailService.TEMPLATE_ID,
-      //   {
-      //     from_name: emailData.from_name,
-      //     to_email: emailData.to_email,
-      //     idea_title: emailData.idea_title,
-      //     idea_description: emailData.idea_description,
-      //     referral_link: emailData.referral_link,
-      //     referrer_message: emailData.referrer_message || "", // Optional field fallback
-      //   },
-      //   EmailService.PUBLIC_KEY
-      // );
+      const result = await emailjs.send(
+        EmailService.SERVICE_ID,
+        EmailService.TEMPLATE_ID,
+        {
+          from_name: emailData.from_name,
+          to_email: emailData.to_email,
+          idea_title: emailData.idea_title,
+          idea_description: emailData.idea_description,
+          referral_link: emailData.referral_link,
+          referrer_message: emailData.referrer_message || "", // Optional field fallback
+        },
+        EmailService.PUBLIC_KEY
+      );
 
-      // return result.status === 200;
+      return result.status === 200;
 
       return true;
     } catch (error) {
