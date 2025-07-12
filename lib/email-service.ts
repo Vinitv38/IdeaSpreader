@@ -1,6 +1,6 @@
 // Email service for sending viral referral emails
 // Using EmailJS for client-side email sending (you can replace with server-side solution)
-import emailjs from '@emailjs/browser';
+import emailjs from "@emailjs/browser";
 
 interface EmailData {
   to_email: string;
@@ -13,9 +13,12 @@ interface EmailData {
 }
 
 export class EmailService {
-  private static SERVICE_ID = "service_0dj6az8"; // Replace with your EmailJS service ID
-  private static TEMPLATE_ID = "template_3qi4cdb"; // Replace with your template ID
-  private static PUBLIC_KEY = "Yo6wrhRaNt4caTnnd"; // Replace with your EmailJS public key
+  private static SERVICE_ID = process.env
+    .NEXT_PUBLIC_EMAILJS_SERVICE_ID as string;
+  private static TEMPLATE_ID = process.env
+    .NEXT_PUBLIC_EMAILJS_TEMPLATE_ID as string;
+  private static PUBLIC_KEY = process.env
+    .NEXT_PUBLIC_EMAILJS_PUBLIC_KEY as string;
 
   static async sendReferralEmail(emailData: EmailData): Promise<boolean> {
     try {
@@ -30,7 +33,7 @@ export class EmailService {
       });
 
       // Simulate email sending delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // For demo, we'll always return success
       // In production, implement actual email sending:
