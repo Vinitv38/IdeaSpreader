@@ -81,7 +81,7 @@ export function Dashboard() {
   // Calculate user stats from ideas
   const userStats = {
     // rank: "Idea Starter",
-    totalReach: ideas.reduce((sum, idea) => sum + (idea.reach-1 || 0), 0),
+    totalReach: ideas.reduce((sum, idea) => sum + (idea.reach - 1 || 0), 0),
     totalReferrals: ideas.reduce((sum, idea) => sum + (idea.referrals || 0), 0),
     totalIdeas: ideas.length,
     activeChains: ideas.filter(
@@ -265,7 +265,6 @@ export function Dashboard() {
 
   useEffect(() => {
     const fetchReferredIdeas = async () => {
-
       if (!user?.email) {
         setLoadingReferred(false);
         return;
@@ -410,15 +409,11 @@ export function Dashboard() {
               </Link>
 
               <div className="flex items-center space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatar} alt={user?.name} />
-                  <AvatarFallback>
-                    {user?.name
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("") || "U"}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-full flex items-center justify-center">
+  <span className="text-white font-bold text-sm">
+    {user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
+  </span>
+</div>
                 <div className="hidden md:block">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user?.name}
@@ -437,7 +432,7 @@ export function Dashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Welcome back, {user?.name}! 👋
+            Welcome, {user?.name}! 👋
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">
             Ready to spread some brilliant ideas today?
@@ -483,7 +478,7 @@ export function Dashboard() {
           {/* My Ideas Tab */}
           <TabsContent value="my-ideas" className="space-y-6">
             {loading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {[1, 2].map((i) => (
                   <Card key={i} className="animate-pulse">
                     <CardHeader>
@@ -500,7 +495,7 @@ export function Dashboard() {
                 ))}
               </div>
             ) : ideas.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {ideas.map((idea) => (
                   <Card
                     key={idea.id}
@@ -565,7 +560,9 @@ export function Dashboard() {
                         <div className="text-center">
                           <div className="flex items-center justify-center space-x-1 text-gray-500 dark:text-gray-400">
                             <Users className="h-4 w-4" />
-                            <span className="text-sm">{idea.reach - 1 || 0}</span>
+                            <span className="text-sm">
+                              {idea.reach - 1 || 0}
+                            </span>
                           </div>
                           <span className="text-xs text-gray-400">Reached</span>
                         </div>
@@ -635,7 +632,7 @@ export function Dashboard() {
                                 }}
                               >
                                 <AlertTriangle className="h-4 w-4 mr-2" />
-                                 Chain
+                                Chain
                               </Button>
                               <Link
                                 href={`/idea/${idea.id}`}
@@ -754,7 +751,7 @@ export function Dashboard() {
                                 <div className="flex items-center space-x-2 ml-4">
                                   <div className="text-center">
                                     <div className="text-sm font-medium">
-                                      {idea.referrals -1 || 0}
+                                      {idea.referrals - 1 || 0}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                       Refs
@@ -762,7 +759,7 @@ export function Dashboard() {
                                   </div>
                                   <div className="text-center">
                                     <div className="text-sm font-medium">
-                                      {idea.reach-1 || 0}
+                                      {idea.reach - 1 || 0}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                       Reach

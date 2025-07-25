@@ -76,7 +76,7 @@ export async function createSpreadChain(
       {
         idea_id: ideaId,
         referrer_id: referrerId,
-        email,
+        referred_email: email,
         status: "pending",
       },
     ])

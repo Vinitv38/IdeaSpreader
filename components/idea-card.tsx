@@ -78,14 +78,14 @@ export function IdeaCard({ idea }: { idea: Idea }) {
               <Eye className="h-4 w-4" />
               <span>{idea.views_count || 0}</span>
             </div>
-            <div className="flex items-center space-x-1">
+            {/* <div className="flex items-center space-x-1">
               <ThumbsUp className="h-4 w-4" />
               <span>{idea.likes_count || 0}</span>
             </div>
             <div className="flex items-center space-x-1">
               <MessageSquare className="h-4 w-4" />
               <span>{idea.comments_count || 0}</span>
-            </div>
+            </div> */}
           </div>
         </CardFooter>
       </Card>

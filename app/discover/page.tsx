@@ -2,11 +2,12 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { IdeaCard } from '@/components/idea-card';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/navbar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type Idea = {
   id: string;
@@ -142,28 +143,32 @@ export default function DiscoverPage() {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {ideas.map((idea) => (
-          <IdeaCard 
-            key={idea.id}
-            idea={{
-              ...idea,
-              user: { 
-                id: idea.user_id, 
-                name: 'Anonymous', 
-                email: null, 
-                avatar_url: null 
-              },
-              is_public: true,
-              views_count: idea.views,
-              likes_count: 0,
-              comments_count: 0
-            }}
-          />
-        ))}
+      <div className="h-[calc(100vh-300px)] sm:h-[60vh] overflow-y-auto -mx-2 sm:mx-0 px-2 sm:px-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pb-6">
+          {ideas.map((idea) => (
+            <div key={idea.id} className="h-full">
+              <IdeaCard 
+                idea={{
+                  ...idea,
+                  user: { 
+                    id: idea.user_id, 
+                    name: 'Anonymous', 
+                    email: null, 
+                    avatar_url: null 
+                  },
+                  is_public: true,
+                  views_count: idea.views,
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
+
+  // Toggle mobile filter dropdown
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -174,28 +179,55 @@ export default function DiscoverPage() {
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
       
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
           <Link 
             href="/" 
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-3 sm:mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Home
           </Link>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Discover Stories
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            Explore all public stories shared by our community
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                Discover Stories
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                Explore all public stories shared by our community
+              </p>
+            </div>
+            
+            {/* Mobile Filter Dropdown */}
+            <div className="sm:hidden">
+              <DropdownMenu onOpenChange={setIsMobileFilterOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full flex items-center justify-between">
+                    {selectedCategory}
+                    <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${isMobileFilterOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto">
+                  {categories.map((category) => (
+                    <DropdownMenuItem 
+                      key={category} 
+                      className={`cursor-pointer ${selectedCategory === category ? 'bg-muted' : ''}`}
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 mb-8">
+          {/* Desktop Category Filter */}
+          <div className="hidden sm:flex flex-wrap gap-2 pt-2">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   selectedCategory === category
                     ? 'bg-primary text-primary-foreground shadow-md'
                     : 'bg-muted/50 hover:bg-muted text-foreground/80 hover:text-foreground'
@@ -208,7 +240,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Content Area */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
           {renderContent()}
         </div>
       </main>
