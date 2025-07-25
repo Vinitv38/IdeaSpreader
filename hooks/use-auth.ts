@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { create } from "node:domain";
-import { createProfile } from "@/app/db-handle/route";
+import { createProfile } from "@/lib/db-handler";
 import { NextResponse } from "next/server";
 
 interface User {

@@ -1,149 +1,225 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useTheme } from 'next-themes'
-import { Button } from '@/components/ui/button'
-import { Lightbulb, Menu, X, Sun, Moon, Plus, BarChart3 } from 'lucide-react'
-import { useAuth } from '@/hooks/use-auth'
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { Lightbulb, Menu, X, Sun, Moon, Plus, BarChart3 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
-  const { user, logout } = useAuth()
+  const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
 
   return (
-    <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <nav className="bg-background/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex-shrink-0">
           <Link href="/" className="flex items-center space-x-2">
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
-              <Lightbulb className="h-6 w-6 text-white" />
+              <Lightbulb className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold gradient-text">IdeaSpreader</span>
+            <span className="text-lg font-bold gradient-text hidden sm:inline">
+              IdeaSpreader
+            </span>
           </Link>
+        </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+        {/* Navigation Links - Center */}
+        <div className="hidden md:flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
+          <div className="flex space-x-1">
+            <NavLink href="/" isActive={pathname === "/"}>
               Home
-            </Link>
-            <Link href="#how-it-works" className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+            </NavLink>
+            <NavLink href="/discover" isActive={pathname === "/discover"}>
+              Discover
+            </NavLink>
+            <NavLink
+              href="#how-it-works"
+              isActive={pathname.includes("#how-it-works")}
+            >
               How it Works
-            </Link>
-            <Link href="#featured" className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-              Featured Ideas
-            </Link>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <Link href="/create">
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create
-                  </Button>
-                </Link>
-                <Link href="/dashboard">
-                  <Button variant="outline" size="sm">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Button>
-                </Link>
-                <Button onClick={logout} variant="ghost">
-                  Logout
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <Link href="/login">
-                  <Button variant="outline">Login</Button>
-                </Link>
-                <Link href="/signup">
-                  <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                    Sign Up
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
+            </NavLink>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-              <Link href="/" className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400">
-                Home
-              </Link>
-              <Link href="#how-it-works" className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400">
-                How it Works
-              </Link>
-              <Link href="#featured" className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400">
-                Featured Ideas
-              </Link>
-              
-              {user ? (
-                <div className="space-y-2 pt-2">
-                  <Link href="/create" className="block">
-                    <Button variant="outline" className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Idea
-                    </Button>
-                  </Link>
-                  <Link href="/dashboard" className="block">
-                    <Button variant="outline" className="w-full">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Dashboard
-                    </Button>
-                  </Link>
-                  <Button onClick={logout} variant="ghost" className="w-full">
-                    Logout
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2 pt-2">
-                  <Link href="/login" className="block">
-                    <Button variant="outline" className="w-full">Login</Button>
-                  </Link>
-                  <Link href="/signup" className="block">
-                    <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                      Sign Up
-                    </Button>
-                  </Link>
-                </div>
-              )}
+        {/* Right side actions */}
+        <div className="flex items-center gap-2">
+          {/* <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+            <span className="sr-only">Toggle theme</span>
+          </Button> */}
+
+          {user ? (
+            <div className="hidden md:flex items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              >
+                <Link href="/create" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  New Idea
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Logout
+              </Button>
             </div>
+          ) : (
+            <div className="hidden md:flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                className="bg-gradient-to-r from-primary to-primary/90"
+              >
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </div>
+          )}
+
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
+        <div className="px-2 pt-2 pb-4 space-y-1 sm:px-3 bg-background/95 backdrop-blur-sm border-t border-border/40">
+          <MobileNavLink href="/" isActive={pathname === "/"}>
+            Home
+          </MobileNavLink>
+          <MobileNavLink href="/discover" isActive={pathname === "/discover"}>
+            Discover
+          </MobileNavLink>
+          <MobileNavLink
+            href="#how-it-works"
+            isActive={pathname.includes("#how-it-works")}
+          >
+            How it Works
+          </MobileNavLink>
+
+          <div className="pt-4 mt-2 border-t border-border/40">
+            {user ? (
+              <div className="flex flex-col space-y-2">
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="w-full justify-start"
+                >
+                  <Link href="/dashboard" className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button asChild className="w-full">
+                  <Link href="/create" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Idea
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                  onClick={logout}
+                >
+                  Sign out
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="w-full bg-gradient-to-r from-primary to-primary/90"
+                >
+                  <Link href="/signup">Sign up</Link>
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </nav>
-  )
+  );
+}
+
+// Reusable NavLink component
+interface NavLinkProps {
+  href: string;
+  children: React.ReactNode;
+  isActive?: boolean;
+}
+
+function NavLink({ href, children, isActive = false }: NavLinkProps) {
+  return (
+    <Link
+      href={href}
+      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+        isActive
+          ? "text-foreground bg-accent"
+          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+// Reusable MobileNavLink component
+function MobileNavLink({ href, children, isActive = false }: NavLinkProps) {
+  return (
+    <Link
+      href={href}
+      className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+        isActive
+          ? "text-foreground bg-accent"
+          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+      }`}
+    >
+      {children}
+    </Link>
+  );
 }

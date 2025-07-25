@@ -17,6 +17,7 @@ export interface IdeaWithStats {
   reach: number;
   is_public: boolean;
   is_featured?: boolean;
+  chain_stopped?: boolean;
 }
 
 export function useIdeasWithStats(userId: string | undefined) {

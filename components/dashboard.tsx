@@ -39,6 +39,10 @@ import {
   ArrowLeft,
   Lightbulb,
   BarChart3,
+  X,
+  Trash2,
+  AlertTriangle,
+  PauseCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -48,28 +52,41 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { getReferredIdeas } from "@/app/db-handle/route";
+import { getReferredIdeas } from "@/lib/db-handler";
 import { supabase } from "@/lib/supabase";
 
 export function Dashboard() {
   const { user } = useAuth();
-  const { ideas: initialIdeas, loading, error, refresh: refreshIdeas } = useIdeasWithStats(user?.id);
+  const {
+    ideas: initialIdeas,
+    loading,
+    error,
+    refresh: refreshIdeas,
+  } = useIdeasWithStats(user?.id);
   const [ideas, setIdeas] = useState<IdeaWithStats[]>([]);
   const [referredIdeas, setReferredIdeas] = useState<IdeaWithStats[]>([]);
   const [loadingReferred, setLoadingReferred] = useState(true);
   const [loadingShared, setLoadingShared] = useState(true);
   const [sharedIdeas, setSharedIdeas] = useState<IdeaWithStats[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [stopChainDialogOpen, setStopChainDialogOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<string | null>(null);
+  const [ideaToStopChain, setIdeaToStopChain] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [updatingPrivacy, setUpdatingPrivacy] = useState<Record<string, boolean>>({});
+  const [isStopping, setIsStopping] = useState(false);
+  const [updatingPrivacy, setUpdatingPrivacy] = useState<
+    Record<string, boolean>
+  >({});
 
   // Calculate user stats from ideas
   const userStats = {
     // rank: "Idea Starter",
-    totalReach: ideas.reduce((sum, idea) => sum + (idea.reach || 0), 0),
+    totalReach: ideas.reduce((sum, idea) => sum + (idea.reach-1 || 0), 0),
     totalReferrals: ideas.reduce((sum, idea) => sum + (idea.referrals || 0), 0),
     totalIdeas: ideas.length,
+    activeChains: ideas.filter(
+      (idea) => !idea.chain_stopped && idea.referrals > 0
+    ).length,
   };
 
   const stats = [
@@ -89,17 +106,18 @@ export function Dashboard() {
     },
     {
       title: "Referrals Made",
-      value: loading ? "...": sharedIdeas.length,
+      value: loading ? "..." : sharedIdeas.length,
       icon: TrendingUp,
       color: "text-purple-600",
       bgColor: "bg-purple-100 dark:bg-purple-900/20",
     },
     {
       title: "Active Chains",
-      value: loading ? "..." : userStats.totalReferrals > 0 ? "Active" : "None",
+      value: loading ? "..." : userStats.activeChains.toString(),
       icon: ExternalLink,
       color: "text-orange-600",
       bgColor: "bg-orange-100 dark:bg-orange-900/20",
+      description: "Ideas currently being shared",
     },
   ];
 
@@ -111,30 +129,93 @@ export function Dashboard() {
   // Toggle idea privacy
   const toggleIdeaPrivacy = async (ideaId: string, currentStatus: boolean) => {
     try {
-      setUpdatingPrivacy(prev => ({ ...prev, [ideaId]: true }));
-      
+      setUpdatingPrivacy((prev) => ({ ...prev, [ideaId]: true }));
+
       const { error } = await supabase
-        .from('idea')
+        .from("idea")
         .update({ is_public: !currentStatus })
-        .eq('id', ideaId);
+        .eq("id", ideaId);
 
       if (error) throw error;
-      
+
       // Update local state
-      setIdeas(prev => 
-        prev.map(idea => 
-          idea.id === ideaId 
-            ? { ...idea, is_public: !currentStatus } 
-            : idea
+      setIdeas((prev) =>
+        prev.map((idea) =>
+          idea.id === ideaId ? { ...idea, is_public: !currentStatus } : idea
         )
       );
-      
-      toast.success(`Idea marked as ${currentStatus ? 'public' : 'private'}`);
+
+      toast.success(`Idea marked as ${currentStatus ? "private" : "public"}`);
     } catch (error) {
-      console.error('Error updating idea privacy:', error);
-      toast.error('Failed to update idea privacy');
+      console.error("Error updating idea privacy:", error);
+      toast.error("Failed to update idea privacy");
     } finally {
-      setUpdatingPrivacy(prev => ({ ...prev, [ideaId]: false }));
+      setUpdatingPrivacy((prev) => ({ ...prev, [ideaId]: false }));
+    }
+  };
+
+  // Stop the spreading chain for an idea
+  const confirmStopChain = (ideaId: string) => {
+    setIdeaToStopChain(ideaId);
+    setStopChainDialogOpen(true);
+  };
+
+  const stopChain = async () => {
+    if (!ideaToStopChain) return;
+
+    try {
+      setIsStopping(true);
+      const { error } = await supabase
+        .from("idea")
+        .update({ chain_stopped: true })
+        .eq("id", ideaToStopChain);
+
+      if (error) throw error;
+
+      // Update local state
+      setIdeas((prev) =>
+        prev.map((idea) =>
+          idea.id === ideaToStopChain ? { ...idea, chain_stopped: true } : idea
+        )
+      );
+
+      toast.success("Chain stopped successfully");
+    } catch (error) {
+      console.error("Error stopping chain:", error);
+      toast.error("Failed to stop chain");
+    } finally {
+      setIsStopping(false);
+      setStopChainDialogOpen(false);
+      setIdeaToStopChain(null);
+    }
+  };
+
+  // Delete all chain records for an idea
+  const deleteChainRecords = async (ideaId: string) => {
+    try {
+      const { error } = await supabase
+        .from("spread_chain")
+        .delete()
+        .eq("idea_id", ideaId);
+
+      if (error) throw error;
+
+      toast.success("Chain records deleted successfully");
+      return true;
+    } catch (error) {
+      console.error("Error deleting chain records:", error);
+      toast.error("Failed to delete chain records");
+      return false;
+    }
+  };
+
+  // Handle delete with chain cleanup
+  const handleDeleteWithCleanup = async (ideaId: string) => {
+    // First delete chain records
+    const success = await deleteChainRecords(ideaId);
+    if (success) {
+      // Then delete the idea
+      await handleDeleteIdea();
     }
   };
 
@@ -147,27 +228,35 @@ export function Dashboard() {
   // Handle actual deletion
   const handleDeleteIdea = async () => {
     if (!ideaToDelete) return;
-    
+
     try {
       setIsDeleting(true);
-      
+
+      // First, check if we need to delete chain records
+      const idea = ideas.find((i) => i.id === ideaToDelete);
+      if (idea && !idea.chain_stopped) {
+        // If chain is not stopped, delete chain records first
+        await deleteChainRecords(ideaToDelete);
+      }
+
+      // Then delete the idea
       const { error } = await supabase
-        .from('idea')
+        .from("idea")
         .delete()
-        .eq('id', ideaToDelete);
+        .eq("id", ideaToDelete);
 
       if (error) throw error;
-      
+
       // Update local state
-      setIdeas(prev => prev.filter(idea => idea.id !== ideaToDelete));
+      setIdeas((prev) => prev.filter((idea) => idea.id !== ideaToDelete));
       setDeleteDialogOpen(false);
-      toast.success('Idea deleted successfully');
-      
+      toast.success("Idea deleted successfully");
+
       // Refresh the ideas list
       refreshIdeas();
     } catch (error) {
-      console.error('Error deleting idea:', error);
-      toast.error('Failed to delete idea');
+      console.error("Error deleting idea:", error);
+      toast.error("Failed to delete idea");
     } finally {
       setIsDeleting(false);
       setIdeaToDelete(null);
@@ -176,6 +265,7 @@ export function Dashboard() {
 
   useEffect(() => {
     const fetchReferredIdeas = async () => {
+
       if (!user?.email) {
         setLoadingReferred(false);
         return;
@@ -414,21 +504,41 @@ export function Dashboard() {
                 {ideas.map((idea) => (
                   <Card
                     key={idea.id}
-                    className="hover:shadow-lg transition-shadow"
+                    className="hover:shadow-lg transition-shadow relative group"
                   >
-                    <CardHeader>
+                    <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-lg line-clamp-2">
                             {idea.title}
                           </CardTitle>
-                          <CardDescription className="mt-2 line-clamp-2">
+                          <CardDescription className="mt-1 line-clamp-2 h-10">
                             {idea.description}
                           </CardDescription>
                         </div>
-                        {idea.category && (
-                          <Badge variant="secondary">{idea.category}</Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {idea.category && (
+                            <Badge variant="secondary" className="shrink-0">
+                              {idea.category}
+                            </Badge>
+                          )}
+                          {idea.chain_stopped && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIdeaToDelete(idea.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
 
@@ -445,7 +555,7 @@ export function Dashboard() {
                           <div className="flex items-center justify-center space-x-1 text-gray-500 dark:text-gray-400">
                             <Share2 className="h-4 w-4" />
                             <span className="text-sm">
-                              {idea.referrals || 0}
+                              {idea.referrals - 1 || 0}
                             </span>
                           </div>
                           <span className="text-xs text-gray-400">
@@ -455,7 +565,7 @@ export function Dashboard() {
                         <div className="text-center">
                           <div className="flex items-center justify-center space-x-1 text-gray-500 dark:text-gray-400">
                             <Users className="h-4 w-4" />
-                            <span className="text-sm">{idea.reach || 0}</span>
+                            <span className="text-sm">{idea.reach - 1 || 0}</span>
                           </div>
                           <span className="text-xs text-gray-400">Reached</span>
                         </div>
@@ -471,39 +581,80 @@ export function Dashboard() {
                         </span>
                       </div>
 
-                      <div className="flex flex-col space-y-2">
+                      <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        {/* Status Badge */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <span className="text-sm text-muted-foreground">
-                              {/* {idea.is_public ? 'Public' : 'Private'} */}
-                              Private
-                            </span>
-                            <Switch
-                              checked={idea.is_public}
-                              onCheckedChange={() => toggleIdeaPrivacy(idea.id, idea.is_public)}
-                              disabled={updatingPrivacy[idea.id]}
-                            />
+                            {idea.chain_stopped ? (
+                              <Badge
+                                variant="outline"
+                                className="border-amber-200 text-amber-700 dark:border-amber-900 dark:text-amber-400"
+                              >
+                                <PauseCircle className="h-3.5 w-3.5 mr-1.5" />
+                                Chain Stopped
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-200 text-emerald-700 dark:border-emerald-900 dark:text-emerald-400"
+                              >
+                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></div>
+                                Active
+                              </Badge>
+                            )}
+
+                            {!idea.chain_stopped && (
+                              <div className="flex items-center space-x-1.5">
+                                <Switch
+                                  checked={idea.is_public}
+                                  onCheckedChange={() =>
+                                    toggleIdeaPrivacy(idea.id, idea.is_public)
+                                  }
+                                  disabled={updatingPrivacy[idea.id]}
+                                  className="data-[state=checked]:bg-blue-600"
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                  {idea.is_public ? "Public" : "Private"}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive/90"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              confirmDelete(idea.id);
-                            }}
-                          >
-                            Delete
-                          </Button>
                         </div>
+
+                        {/* Action Buttons */}
                         <div className="flex space-x-2">
-                          <Link href={`/idea/${idea.id}`} className="flex-1">
-                            <Button variant="outline" className="w-full">
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              View
-                            </Button>
-                          </Link>
+                          {!idea.chain_stopped ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-900 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  confirmStopChain(idea.id);
+                                }}
+                              >
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                 Chain
+                              </Button>
+                              <Link
+                                href={`/idea/${idea.id}`}
+                                className="flex-1"
+                              >
+                                <Button variant="outline" className="w-full">
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
+                              </Link>
+                            </>
+                          ) : (
+                            <Link href={`/idea/${idea.id}`} className="w-full">
+                              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                View Details
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -603,7 +754,7 @@ export function Dashboard() {
                                 <div className="flex items-center space-x-2 ml-4">
                                   <div className="text-center">
                                     <div className="text-sm font-medium">
-                                      {idea.referrals || 0}
+                                      {idea.referrals -1 || 0}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                       Refs
@@ -611,7 +762,7 @@ export function Dashboard() {
                                   </div>
                                   <div className="text-center">
                                     <div className="text-sm font-medium">
-                                      {idea.reach || 0}
+                                      {idea.reach-1 || 0}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                       Reach
@@ -763,24 +914,54 @@ export function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
-      
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the idea and all its associated data.
+              This action cannot be undone. This will permanently delete the
+              idea and all its associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteIdea}
               disabled={isDeleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stop Chain Confirmation Dialog */}
+      <AlertDialog
+        open={stopChainDialogOpen}
+        onOpenChange={setStopChainDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Are you sure you want to stop this chain?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Stopping the chain will prevent any further sharing of this idea.
+              You can still view the idea and its statistics, but it won't be
+              shareable anymore.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isStopping}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={stopChain}
+              disabled={isStopping}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {isStopping ? "Stopping..." : "Stop Chain"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

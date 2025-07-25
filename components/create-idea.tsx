@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
+import { getPlatformStats } from '@/lib/stats';
 
 // Get the Supabase URL from environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -22,7 +23,7 @@ import { Navbar } from "@/components/navbar";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import Link from "next/link";
-import { createIdea, createSpreadChain } from "@/app/db-handle/route";
+import { createIdea, createSpreadChain } from "@/lib/db-handler";
 import { supabase } from "@/lib/supabase";
 
 const categories = [
@@ -61,6 +62,12 @@ const inspirationIdeas = [
 
 export function CreateIdea() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    activeSpreaders: 0,
+    ideasShared: 0,
+    livesReached: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -71,34 +78,83 @@ export function CreateIdea() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [files, setFiles] = useState<Array<File & { preview?: string }>>([]);
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const statsData = await getPlatformStats();
+        setStats(statsData);
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Format large numbers with K/M/B suffixes
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M+';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K+';
+    }
+    return num.toString();
+  };
+
   const uploadFiles = async (filesToUpload: File[], ideaId: string): Promise<string[]> => {
     const fileUrls: string[] = [];
     
     for (const file of filesToUpload) {
       try {
-        const fileExt = file.name.split('.').pop();
+        // Validate file size (10MB max)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
+          continue;
+        }
+
+        // Generate a unique file name
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `${user?.id}/${ideaId}/${fileName}`;
+        const bucketName = 'idea-files';
 
-        // Upload the file to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from('idea-files')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: file.type
-          });
+        try {
+          // First, try to upload the file
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(bucketName)
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: file.type
+            });
 
-        if (uploadError) throw uploadError;
+          if (uploadError) {
+            // If bucket not found, try to create it
+            if (uploadError.message.includes('Bucket not found')) {
+              toast.error('Storage bucket not found. Please create a bucket named "idea-files" in your Supabase dashboard.');
+              console.error('Bucket not found. Please create a bucket named "idea-files" in your Supabase dashboard.');
+              return [];
+            }
+            throw uploadError;
+          }
 
-        // Construct the public URL directly
-        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/idea-files/${filePath}`;
-        
-        fileUrls.push(publicUrl);
-        console.log('Uploaded file URL:', publicUrl);
+          // Store the path in the database (not the full URL)
+          // Store just the relative path without the bucket name to prevent duplication
+          const fileUrl = `${filePath}`; // Just the path: userId/ideaId/filename.ext
+          fileUrls.push(fileUrl);
+          
+          toast.success(`Uploaded ${file.name} successfully`);
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error);
+          toast.error(`Failed to upload ${file.name}. ${error instanceof Error ? error.message : ''}`);
+        }
       } catch (error) {
-        console.error(`Error uploading ${file.name}:`, error);
-        toast.error(`Failed to upload ${file.name}`);
+        console.error(`Error processing ${file.name}:`, error);
+        toast.error(`Error processing ${file.name}. Please try again.`);
       }
     }
 
@@ -170,10 +226,27 @@ export function CreateIdea() {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files).map(file => 
         Object.assign(file, {
-          preview: URL.createObjectURL(file)
+          preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
         })
       );
+      
+      // Check total files don't exceed 5
+      if (files.length + newFiles.length > 5) {
+        toast.error('You can upload a maximum of 5 files');
+        return;
+      }
+      
+      // Validate file types
+      const validFileTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'application/rtf'];
+      
+      const invalidFiles = newFiles.filter(file => !validFileTypes.includes(file.type));
+      if (invalidFiles.length > 0) {
+        toast.error(`Unsupported file type: ${invalidFiles.map(f => f.name).join(', ')}`);
+        return;
+      }
+      
       setFiles(prev => [...prev, ...newFiles]);
+      e.target.value = ''; // Reset the input to allow selecting the same file again if needed
     }
   };
 
@@ -185,7 +258,15 @@ export function CreateIdea() {
   }, [files]);
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles(prev => {
+      const newFiles = [...prev];
+      // Revoke the object URL to prevent memory leaks
+      if (newFiles[index].preview) {
+        URL.revokeObjectURL(newFiles[index].preview!);
+      }
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
   };
 
   if (isSubmitted) {
@@ -421,7 +502,7 @@ export function CreateIdea() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="files">
-                      Attach Images or Files (optional)
+                      Attach Supporting Files (optional)
                     </Label>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -438,45 +519,53 @@ export function CreateIdea() {
                           multiple
                           onChange={handleFileChange}
                           className="hidden"
-                          accept="image/*,.pdf,.doc,.docx,.txt"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf"
                         />
+                        <span className="text-sm text-muted-foreground">
+                          {files.length} of 5 files selected
+                        </span>
                       </div>
                       
                       {files.length > 0 && (
                         <div className="mt-2 space-y-2">
                           {files.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
-                              <div className="flex items-center gap-2">
+                            <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-md hover:bg-muted/50">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
                                 {file.type.startsWith('image/') && file.preview ? (
                                   <img 
                                     src={file.preview} 
                                     alt={file.name}
                                     className="h-8 w-8 object-cover rounded"
+                                    onLoad={() => URL.revokeObjectURL(file.preview!)}
                                   />
                                 ) : (
-                                  <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                  <div className="h-8 w-8 flex items-center justify-center bg-muted rounded">
+                                    <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                  </div>
                                 )}
-                                <span className="text-sm truncate max-w-xs">{file.name}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({(file.size / 1024).toFixed(1)} KB)
-                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{file.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(file.size / 1024).toFixed(1)} KB • {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                  </p>
+                                </div>
                               </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
                                 onClick={() => removeFile(index)}
                               >
-                                <X className="h-3 w-3" />
+                                <X className="h-3.5 w-3.5" />
                                 <span className="sr-only">Remove file</span>
                               </Button>
                             </div>
                           ))}
                         </div>
                       )}
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        You can attach images or documents to support your idea (max 10MB per file).
+                      <p className="text-xs text-muted-foreground">
+                        Supported formats: Images, PDF, Word, Excel, PowerPoint, Text, RTF. Max 10MB per file. Max 5 files.
                       </p>
                     </div>
                   </div>
@@ -523,19 +612,25 @@ export function CreateIdea() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">50K+</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {isLoading ? '...' : formatNumber(stats.activeSpreaders)}
+                  </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Active Spreaders
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">1M+</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {isLoading ? '...' : formatNumber(stats.ideasShared)}
+                  </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Ideas Shared
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">10M+</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {isLoading ? '...' : formatNumber(stats.livesReached)}
+                  </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Lives Reached
                   </div>

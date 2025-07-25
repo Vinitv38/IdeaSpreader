@@ -23,7 +23,9 @@ import {
   Image as ImageIcon,
   X,
   Maximize2,
-  Download
+  Download,
+  BarChart3,
+  Plus
 } from "lucide-react";
 import {
   Dialog,
@@ -35,7 +37,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createSpreadChain } from "@/app/db-handle/route";
+import { createSpreadChain } from "@/lib/db-handler";
 
 interface IdeaViewProps {}
 
@@ -50,6 +52,94 @@ interface Idea {
   reach: number;
   file_urls: string[];
   user_id?: string;
+}
+
+function IdeaNavbar() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  return (
+    <nav className="bg-background/80 backdrop-blur-sm border-b border-border/40 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => router.back()}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
+              <FileText className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold gradient-text hidden sm:inline">
+              IdeaSpreader
+            </span>
+          </Link>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              <Button 
+                asChild 
+                size="sm"
+                variant="outline"
+                className="hidden sm:flex"
+              >
+                <Link href="/dashboard" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </Button>
+              <Button 
+                asChild 
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              >
+                <Link href="/create" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  New Idea
+                </Link>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleLogout}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button 
+                asChild 
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              >
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
 }
 
 export function IdeaView({}: IdeaViewProps) {
@@ -104,8 +194,8 @@ export function IdeaView({}: IdeaViewProps) {
       const uniqueEmails = new Set(reachEmails);
       
       setStats({
-        referrals: referralCount || 0,
-        reach: uniqueEmails.size + 1 // +1 for the creator
+        referrals: (referralCount ?? 0) - 1,
+        reach: uniqueEmails.size // +1 for the creator
       });
     } catch (error) {
       console.error('Error fetching idea stats:', error);
@@ -187,16 +277,58 @@ export function IdeaView({}: IdeaViewProps) {
     if (!user) {
       toast.warning("Login before Sharing");
       router.push("/login");
+      return;
     }
     e.preventDefault();
     if (!idea) return;
 
     setIsSharing(true);
 
+    // Check if chain is stopped
+    const { data: ideaData, error: ideaError } = await supabase
+      .from("idea")
+      .select("chain_stopped")
+      .eq("id", idea.id)
+      .single();
+
+    if (ideaError) {
+      console.error("Error checking chain status:", ideaError);
+      toast.error("Failed to check idea status");
+      setIsSharing(false);
+      return;
+    }
+
+    if (ideaData?.chain_stopped) {
+      toast.warning("The chain for this idea has been stopped by the creator");
+      setIsSharing(false);
+      return;
+    }
+
     // Validate emails
     const validEmails = referralEmails
       .map((email) => email.trim())
       .filter((email) => email && email.includes("@"));
+
+    // Check for duplicate emails in spread_chain
+    const { data: existingEmails, error: checkError } = await supabase
+      .from("spread_chain")
+      .select("referred_email")
+      .in("referred_email", validEmails)
+      .eq("idea_id", idea.id);
+
+    if (checkError) {
+      console.error("Error checking existing emails:", checkError);
+      toast.error("Failed to validate emails");
+      setIsSharing(false);
+      return;
+    }
+
+    if (existingEmails && existingEmails.length > 0) {
+      const duplicateEmails = existingEmails.map(e => e.referred_email).join(", ");
+      toast.warning(`These emails have already been referred`);
+      setIsSharing(false);
+      return;
+    }
 
     if (validEmails.length < 1) {
       toast.error("Please enter at least 1 valid email address");
@@ -258,9 +390,25 @@ export function IdeaView({}: IdeaViewProps) {
 
   const reachProgress = idea ? Math.min((idea.reach / 50000) * 100, 100) : 0;
 
+  if (!idea) {
+    return (
+      <div className="min-h-screen bg-background">
+        <IdeaNavbar />
+        <div className="max-w-4xl mx-auto p-4 md:p-6 pt-6 lg:px-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Loading idea...</CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <IdeaNavbar />
+      <div className="max-w-4xl mx-auto p-4 md:p-6 pt-6 lg:px-8">
         {/* Idea Header */}
         <Card className="mb-8">
           <CardHeader>
@@ -272,6 +420,20 @@ export function IdeaView({}: IdeaViewProps) {
                     Back
                   </Link>
                 </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-bold">{idea.title}</CardTitle>
+                <Badge variant="outline" className="text-sm">
+                  {idea.category}
+                </Badge>
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground space-x-4">
+                <div className="flex items-center">
+                  <Eye className="h-4 w-4 mr-1" />
+                  {idea.views} views
+                </div>
                 <Badge variant="secondary">{idea.category}</Badge>
               </div>
               <Button variant="outline" size="sm" onClick={copyShareLink}>
@@ -315,62 +477,82 @@ export function IdeaView({}: IdeaViewProps) {
               {idea.description}
             </p>
 
-            {/* Attached Files
+            {/* Attached Files */}
             {idea.file_urls && idea.file_urls.length > 0 && (
               <div className="mt-6 space-y-4">
                 <h3 className="font-medium text-gray-700 dark:text-gray-300">Attached Files</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {idea.file_urls?.map((fileUrl, index) => {
-                    const isImage = /\.(jpg|jpeg|png|gif)$/.test(fileUrl);
-                    const isPdf = fileUrl.toLowerCase().endsWith('.pdf');
+                  {idea.file_urls.map((fileUrl, index) => {
+                    const fileExtension = fileUrl.split('.').pop()?.toLowerCase();
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
+                    const isPdf = fileExtension === 'pdf';
+                    const isDocument = ['doc', 'docx', 'txt', 'rtf'].includes(fileExtension || '');
+                    const isSpreadsheet = ['xls', 'xlsx', 'csv'].includes(fileExtension || '');
+                    const isPresentation = ['ppt', 'pptx'].includes(fileExtension || '');
+                    const isArchive = ['zip', 'rar', '7z'].includes(fileExtension || '');
+                    
                     const fileName = fileUrl.split('/').pop() || 'file';
                     const fileType = isImage ? 'image' : isPdf ? 'pdf' : 'other';
+                    
+                    let fileIcon = <FileText className="h-5 w-5 text-gray-600" />;
+                    let fileTypeText = 'File';
+                    
+                    if (isImage) {
+                      fileIcon = <ImageIcon className="h-5 w-5 text-blue-600" />;
+                      fileTypeText = 'Image';
+                    } else if (isPdf) {
+                      fileIcon = <FileText className="h-5 w-5 text-red-600" />;
+                      fileTypeText = 'PDF';
+                    } else if (isDocument) {
+                      fileIcon = <FileText className="h-5 w-5 text-blue-500" />;
+                      fileTypeText = 'Document';
+                    } else if (isSpreadsheet) {
+                      fileIcon = <FileText className="h-5 w-5 text-green-600" />;
+                      fileTypeText = 'Spreadsheet';
+                    } else if (isPresentation) {
+                      fileIcon = <FileText className="h-5 w-5 text-orange-600" />;
+                      fileTypeText = 'Presentation';
+                    } else if (isArchive) {
+                      fileIcon = <FileText className="h-5 w-5 text-purple-600" />;
+                      fileTypeText = 'Archive';
+                    }
                     
                     return (
                       <div 
                         key={index} 
-                        className="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer"
+                        className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                         onClick={() => handleFilePreview(fileUrl, fileName, fileType)}
                       >
-                        <div className="p-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                              {isImage ? (
-                                <ImageIcon className="h-5 w-5 text-blue-600" />
-                              ) : isPdf ? (
-                                <FileText className="h-5 w-5 text-red-600" />
-                              ) : (
-                                <FileText className="h-5 w-5 text-gray-600" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {fileName}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {isImage ? 'Image' : isPdf ? 'PDF Document' : 'File'}
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <a 
-                                href={fileUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                title="Download"
-                              >
-                                <Download className="h-4 w-4" />
-                              </a>
-                            </div>
-                          </div>
+                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          {fileIcon}
+                        </div>
+                        <div className="min-w-0 flex-1 ml-3">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {fileName}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {fileTypeText} • {fileExtension?.toUpperCase()}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <a 
+                            href={getFileUrl(fileUrl)} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                            title="Download"
+                            download
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            )} */}
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-6 mb-6">
@@ -538,7 +720,7 @@ export function IdeaView({}: IdeaViewProps) {
         open={!!previewFile} 
         onOpenChange={(open: boolean) => !open && setPreviewFile(null)}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" hideCloseButton={true}>
           <DialogHeader>
             <DialogTitle className="flex justify-between items-center">
               <span>File Preview</span>

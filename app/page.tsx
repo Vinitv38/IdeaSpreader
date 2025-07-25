@@ -1,6 +1,6 @@
 import { Hero } from '@/components/hero'
 import { HowItWorks } from '@/components/how-it-works'
-import { FeaturedIdeas } from '@/components/featured-ideas'
+// import { FeaturedIdeas } from '@/components/featured-ideas'
 import { Testimonials } from '@/components/testimonials'
 import { CTA } from '@/components/cta'
 import { Navbar } from '@/components/navbar'
@@ -12,7 +12,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <HowItWorks />
-      <FeaturedIdeas />
+      {/* <FeaturedIdeas /> */}
       {/* <Testimonials /> */}
       <CTA />
       <Footer />

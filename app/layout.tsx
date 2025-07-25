@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { StorageInitializer } from '@/components/storage-initializer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,12 +22,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}
           <Toaster />
+          <StorageInitializer />
         </ThemeProvider>
       </body>
     </html>

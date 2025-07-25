@@ -1,10 +1,45 @@
 "use client"
 
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Sparkles, Users, TrendingUp } from 'lucide-react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, Sparkles, Users, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { getPlatformStats } from '@/lib/stats';
 
 export function Hero() {
+  const [stats, setStats] = useState({
+    activeSpreaders: 0,
+    ideasShared: 0,
+    livesReached: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const statsData = await getPlatformStats();
+        setStats(statsData);
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Format large numbers with K/M/B suffixes
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M+';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K+';
+    }
+    return num.toString();
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
       {/* Background decorations */}
@@ -41,32 +76,38 @@ export function Hero() {
             <div className="flex items-center space-x-2">
               <Users className="h-5 w-5 text-purple-600" />
               <span className="text-gray-600 dark:text-gray-300">
-                <span className="font-bold text-gray-900 dark:text-white">50K+</span> Active Spreaders
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {isLoading ? '...' : formatNumber(stats.activeSpreaders)}
+                </span> Active Spreaders
               </span>
             </div>
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-blue-600" />
               <span className="text-gray-600 dark:text-gray-300">
-                <span className="font-bold text-gray-900 dark:text-white">1M+</span> Ideas Shared
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {isLoading ? '...' : formatNumber(stats.ideasShared)}
+                </span> Ideas Shared
               </span>
             </div>
             <div className="flex items-center space-x-2">
               <Sparkles className="h-5 w-5 text-pink-600" />
               <span className="text-gray-600 dark:text-gray-300">
-                <span className="font-bold text-gray-900 dark:text-white">10M+</span> Lives Reached
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {isLoading ? '...' : formatNumber(stats.livesReached)}
+                </span> Lives Reached
               </span>
             </div>
           </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <Link href="/signup">
+            <Link href="/dashboard">
               <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
                 Start Spreading Ideas
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/discover">
               <Button variant="outline" size="lg" className="px-8 py-3 text-lg font-semibold rounded-full border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200">
                 Explore Ideas
               </Button>
