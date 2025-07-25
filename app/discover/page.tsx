@@ -32,7 +32,8 @@ const categories = [
   'Entertainment',
   'Sports',
   'Education',
-  'Other'
+  'Lifestyle',
+  'Community',
 ];
 
 export default function DiscoverPage() {
