@@ -20,7 +20,7 @@ export async function createProfile(user: any) {
     throw error;
   }
 
-  console.log("Profile created:", data);
+  //("Profile created:", data);
   return data;
 }
 
@@ -175,7 +175,7 @@ export async function getReferredIdeas(email: string) {
       });
     }
 
-    console.log(`Found ${uniqueIdeaIds.length} unique idea IDs`);
+    //(`Found ${uniqueIdeaIds.length} unique idea IDs`);
     return uniqueIdeaIds;
   } catch (error) {
     console.error("Unexpected error by getReferredIdeas", error);

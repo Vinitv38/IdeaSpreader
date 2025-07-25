@@ -275,7 +275,7 @@ export function Dashboard() {
 
         // 1️⃣ Fetch referred ideas with status
         const referredIdeas = await getReferredIdeas(user.email);
-        console.log("Referred Ideas:", referredIdeas);
+        //("Referred Ideas:", referredIdeas);
         // [{ idea_id: "abc", status: "pending" }, { idea_id: "xyz", status: "shared" }]
 
         if (referredIdeas.length === 0) {
@@ -292,8 +292,6 @@ export function Dashboard() {
         const sharedIdeaIds = referredIdeas
           .filter((item) => item.status === "shared")
           .map((item) => item.idea_id);
-
-        
 
         // Combine all IDs to fetch full idea details in one query
         const allIdeaIds = Array.from(
@@ -348,8 +346,8 @@ export function Dashboard() {
         setReferredIdeas(pendingIdeas);
         setSharedIdeas(sharedIdeas);
 
-        console.log("Pending Ideas:", pendingIdeas);
-        console.log("Shared Ideas:", sharedIdeas);
+        //("Pending Ideas:", pendingIdeas);
+        //("Shared Ideas:", sharedIdeas);
       } catch (error) {
         console.error("Error fetching referred ideas:", error);
         toast.error("Failed to load referred ideas");
@@ -362,7 +360,7 @@ export function Dashboard() {
   }, [user?.email]);
 
   const fetchDataForTab = (value: string) => {
-    console.log(value);
+    //(value);
   };
 
   return (
@@ -413,10 +411,13 @@ export function Dashboard() {
 
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-pink-500 rounded-full flex items-center justify-center">
-  <span className="text-white font-bold text-sm">
-    {user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
-  </span>
-</div>
+                  <span className="text-white font-bold text-sm">
+                    {user?.name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("") || "U"}
+                  </span>
+                </div>
                 <div className="hidden md:block">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user?.name}

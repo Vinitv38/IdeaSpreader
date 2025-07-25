@@ -369,15 +369,17 @@ export function IdeaView({}: IdeaViewProps) {
         }
 
         // Send email
-        console.log(`📧 Sending referral email to ${email} for idea "${idea.title}"`);
+        //(`📧 Sending referral email to ${email} for idea "${idea.title}"`);
         const emailSent = await EmailService.sendReferralEmail({
           to_email: email,
-          to_name: email.split('@')[0], // Use the part before @ as name
-          from_name: user?.name || 'Someone',
+          to_name: email.split("@")[0], // Use the part before @ as name
+          from_name: user?.name || "Someone",
           idea_title: idea.title,
-          idea_description: idea.description || '',
-          referral_link: `${window.location.origin}/idea/${idea.id}?ref=${user?.id || 'anon'}`,
-          referrer_message: `Check out this idea I found on SparkLoop!`
+          idea_description: idea.description || "",
+          referral_link: `${window.location.origin}/idea/${idea.id}?ref=${
+            user?.id || "anon"
+          }`,
+          referrer_message: `Check out this idea I found on SparkLoop!`,
         });
 
         if (!emailSent) {
@@ -393,7 +395,7 @@ export function IdeaView({}: IdeaViewProps) {
       const successfulEmails = results.filter(Boolean).length;
 
       setHasShared(true);
-      
+
       // Update the status for the referrer if this is a chain
       if (user?.email) {
         try {

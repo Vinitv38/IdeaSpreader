@@ -82,7 +82,7 @@ export function useAuth() {
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    console.log("Signup payload:", { email, password, name });
+    //("Signup payload:", { email, password, name });
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email,
@@ -112,7 +112,7 @@ export function useAuth() {
       { status: 200 }
     );
 
-    console.log("Signup successful! Please check your email to confirm.");
+    //("Signup successful! Please check your email to confirm.");
   };
 
   const logout = () => {

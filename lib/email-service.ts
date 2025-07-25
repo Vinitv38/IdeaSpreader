@@ -25,12 +25,12 @@ export class EmailService {
       // For demo purposes, we'll simulate email sending
       // In production, replace this with actual EmailJS or server-side email service
 
-      console.log("📧 Sending viral referral email:", {
-        to: emailData.to_email,
-        subject: `${emailData.from_name} shared an amazing idea with you!`,
-        idea: emailData.idea_title,
-        link: emailData.referral_link,
-      });
+      //("📧 Sending viral referral email:", {
+      //   to: emailData.to_email,
+      //   subject: `${emailData.from_name} shared an amazing idea with you!`,
+      //   idea: emailData.idea_title,
+      //   link: emailData.referral_link,
+      // });
 
       // Simulate email sending delay
       await new Promise((resolve) => setTimeout(resolve, 1000));

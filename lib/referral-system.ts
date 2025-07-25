@@ -55,12 +55,12 @@ export class ReferralSystem {
 
     // Find the referrer by referral code and update their chain
     // This would be a database operation in production
-    console.log('📊 Tracking referral:', {
-      ideaId,
-      referralCode,
-      newUserId,
-      chain: referralChain
-    });
+    //('📊 Tracking referral:', {
+    //   ideaId,
+    //   referralCode,
+    //   newUserId,
+    //   chain: referralChain
+    // });
 
     return referralChain;
   }
@@ -72,11 +72,11 @@ export class ReferralSystem {
     }
 
     // In production, update database
-    console.log('✅ Referral completed:', {
-      userId,
-      referredCount: referredEmails.length,
-      completedAt: new Date().toISOString()
-    });
+    //('✅ Referral completed:', {
+      // userId,
+    //   referredCount: referredEmails.length,
+    //   completedAt: new Date().toISOString()
+    // });
 
     return true;
   }
@@ -115,11 +115,11 @@ export class ReferralSystem {
     
     // For demo, allow access but track the referral
     if (referralCode) {
-      console.log('🔗 User accessing via referral link:', {
-        userId,
-        ideaId,
-        referralCode
-      });
+      // //('🔗 User accessing via referral link:', {
+      //   userId,
+      //   ideaId,
+      //   referralCode
+      // });
     }
     
     return true;
