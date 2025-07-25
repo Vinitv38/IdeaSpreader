@@ -29,7 +29,7 @@ export function Navbar() {
               <Lightbulb className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-bold gradient-text hidden sm:inline">
-              IdeaSpreader
+              SparkLoop
             </span>
           </Link>
         </div>

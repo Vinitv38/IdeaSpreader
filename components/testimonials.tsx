@@ -10,7 +10,7 @@ const testimonials = [
     role: 'Marketing Director',
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face',
     initials: 'EW',
-    content: 'IdeaSpreader has completely changed how I discover and share innovative concepts. The referral system creates such meaningful connections!',
+    content: 'SparkLoop has completely changed how I discover and share innovative concepts. The referral system creates such meaningful connections!',
     rating: 5,
     reach: '2.3K people reached through my referrals'
   },

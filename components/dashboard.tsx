@@ -275,6 +275,7 @@ export function Dashboard() {
 
         // 1️⃣ Fetch referred ideas with status
         const referredIdeas = await getReferredIdeas(user.email);
+        console.log("Referred Ideas:", referredIdeas);
         // [{ idea_id: "abc", status: "pending" }, { idea_id: "xyz", status: "shared" }]
 
         if (referredIdeas.length === 0) {
@@ -291,6 +292,8 @@ export function Dashboard() {
         const sharedIdeaIds = referredIdeas
           .filter((item) => item.status === "shared")
           .map((item) => item.idea_id);
+
+        
 
         // Combine all IDs to fetch full idea details in one query
         const allIdeaIds = Array.from(
@@ -383,7 +386,7 @@ export function Dashboard() {
                   <Lightbulb className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-lg font-bold gradient-text hidden sm:inline">
-                  IdeaSpreader
+                  SparkLoop
                 </span>
               </Link>
             </div>

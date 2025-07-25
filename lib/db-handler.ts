@@ -151,7 +151,7 @@ export async function getReferredIdeas(email: string) {
     const { data, error } = await supabase
       .from("spread_chain")
       .select("*")
-      .eq("email", email)
+      .eq("referred_email", email)
       .not("referrer_id", "is", null);
 
     if (error) {

@@ -14,7 +14,7 @@ export function Footer() {
               <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
                 <Lightbulb className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold">IdeaSpreader</span>
+              <span className="text-xl font-bold">SparkLoop</span>
             </Link>
             <p className="text-gray-400 text-sm">
               Spreading brilliant ideas across the world, one referral at a time.
@@ -71,7 +71,7 @@ export function Footer() {
 
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            © 2024 IdeaSpreader. All rights reserved.
+            © 2024 SparkLoop. All rights reserved.
           </p>
           <p className="text-gray-400 text-sm mt-4 md:mt-0">
             Made with ❤️ for idea spreaders worldwide

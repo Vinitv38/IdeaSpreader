@@ -117,7 +117,7 @@ export class EmailService {
             }
           </div>
           <div class="footer">
-            <p>This email was sent through IdeaSpreader - One idea. Infinite reach.</p>
+            <p>This email was sent through SparkLoop - One idea. Infinite reach.</p>
             <p>Join the movement of spreading brilliant ideas worldwide!</p>
           </div>
         </div>

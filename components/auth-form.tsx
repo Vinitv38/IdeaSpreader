@@ -88,7 +88,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">
-            {mode === "login" ? "Welcome Back" : "Join IdeaSpreader"}
+            {mode === "login" ? "Welcome Back" : "Join SparkLoop"}
           </CardTitle>
           <CardDescription>
             {mode === "login"
