@@ -555,7 +555,8 @@ export function IdeaView({}: IdeaViewProps) {
                       fileExtension || ""
                     );
 
-                    const fileName = fileUrl.split("/").pop() || "file";
+                    const documentNumber = index + 1;
+                    const displayName = `document${documentNumber}`;
                     const fileType = isImage
                       ? "image"
                       : isPdf
@@ -600,7 +601,7 @@ export function IdeaView({}: IdeaViewProps) {
                         key={index}
                         className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                         onClick={() =>
-                          handleFilePreview(fileUrl, fileName, fileType)
+                          handleFilePreview(fileUrl, displayName, fileType)
                         }
                       >
                         <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -608,7 +609,10 @@ export function IdeaView({}: IdeaViewProps) {
                         </div>
                         <div className="min-w-0 flex-1 ml-3">
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {fileName}
+                            {displayName}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate" title={fileUrl.split("/").pop()}>
+                            {fileUrl.split("/").pop()}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {fileTypeText} • {fileExtension?.toUpperCase()}
